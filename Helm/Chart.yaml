@@ -1,0 +1,8 @@
+apiVersion: v2
+appVersion: "1.0"
+description: Simple landing page for linking to services, and showing MOTD.
+home: http://gitlab.lan/portal
+maintainers:
+- name: cbanek
+name: portal
+version: 0.3.0

@@ -1,0 +1,120 @@
+variables:
+  IMAGE_NAME: portal
+  DOCKER_DRIVER: overlay2
+
+
+stages:
+  - build-dev
+  - deploy-dev
+  - release
+  - build-prod
+  - deploy-prod
+
+
+###build-dev
+build-dev:
+  stage: build-dev
+  tags:
+    - build-dev
+  services:
+    - docker-repo.artifactory.me/docker:dind
+
+  script:
+    - ip a
+    - echo "Build image on environment dev"
+    - docker build -t $REGISTRY_URL/$IMAGE_NAME:$IMAGE_TAG_DEV .
+    - docker push $REGISTRY_URL/$IMAGE_NAME:$IMAGE_TAG_DEV
+
+  after_script:
+    - docker rmi $(docker images -f "dangling=true" -q) || echo 'image removed or does not exist!'
+  environment:
+    name: DEV
+  only:
+    - dev
+
+###deploy-dev
+deploy-dev:
+  stage: deploy-dev
+  image: $REGISTRY_URL/dtzar/helm-kubectl:3.9.0
+  tags:
+    - deploy-dev
+  before_script:
+    - mkdir ~/.kube
+    - cp Helm/kub.conf ~/.kube/config
+
+  script:
+    - echo "Deploy image on environment dev"
+    - echo "$IMAGE_NAME:$IMAGE_TAG"
+    - helm repo update
+    - helm uninstall portal -n dev || echo 'portal does not exist!'
+    - helm upgrade --install portal ./Helm --values=./Helm/values-dev.yaml --set image.imageName=$IMAGE_NAME --set image.tag=$IMAGE_TAG_DEV  --namespace $NAMESPACE_DEV
+    - helm ls --namespace $NAMESPACE_DEV | grep $IMAGE_NAME
+    - kubectl get all --namespace $NAMESPACE_DEV | grep $IMAGE_NAME
+    - kubectl get ingress --namespace $NAMESPACE_DEV | grep $IMAGE_NAME
+
+  after_script:
+  environment:
+    name: DEV
+  only:
+    - dev
+###release
+release:
+  stage: release
+  tags:
+    - release
+
+  image: $REGISTRY_URL/gitlab-org/release-cli
+  script:
+    - echo "Creating a new release for tag $CI_COMMIT_TAG..."
+    - release-cli create --name Portal-release-$CI_COMMIT_TAG
+  only:
+    - tags
+
+###build-prod
+build-prod:
+  stage: build-prod
+  tags:
+    - build-prod
+  before_script:
+    - docker info
+    - docker login -u $REGISTRY_USER -p $REGISTRY_PASSWORD $REGISTRY_URL
+  services:
+    - $REGISTRY_URL/docker:dind
+  script:
+    - echo "Build image on environment dev"
+    - echo "$CI_COMMIT_TAG"
+    - docker rmi $(docker images -f "dangling=true" -q) || echo 'image removed or does not exist!'
+    - docker login -u $REGISTRY_USER -p $REGISTRY_PASSWORD $REGISTRY_URL
+    - date
+    - docker build -t $REGISTRY_URL/$IMAGE_NAME:$CI_COMMIT_TAG .
+  after_script:
+  
+  environment:
+    name: PROD
+  only:
+    - tags
+
+###deploy-prod
+deploy-prod:
+  stage: deploy-prod
+  image: $REGISTRY_URL/dtzar/helm-kubectl:3.9.0
+  tags:
+    - deploy-prod
+  when: manual
+  before_script:
+    - mkdir ~/.kube
+    - cp Helm/kub.conf ~/.kube/config
+  script:
+    - echo "Deploy image on environment prod"
+    - helm repo update
+    - echo "$IMAGE_NAME:$CI_COMMIT_TAG"
+    - helm uninstall portal -n dev || echo 'portal does not exist!'
+    - helm upgrade --install portal ./Helm --values=./Helm/values-prod.yaml --set image.imageName=$IMAGE_NAME --set image.tag=$CI_COMMIT_TAG  --namespace $NAMESPACE_PROD
+    - helm ls --namespace $CI_COMMIT_TAG
+    - kubectl get all --namespace $NAMESPACE_PROD
+  after_script:
+
+  environment:
+    name: PROD
+  only:
+    - tags

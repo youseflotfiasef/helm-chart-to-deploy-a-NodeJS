@@ -1,0 +1,13 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ template "portal.fullname" . }}
+  labels:
+    app: {{ template "portal.fullname" . }}
+    chart: {{ template "portal.chart" . }}
+spec:
+  ports:
+  - port: 3000
+    targetPort: 3000
+  selector:
+    app: {{ template "portal.fullname" . }}

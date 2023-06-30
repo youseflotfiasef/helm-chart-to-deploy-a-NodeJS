@@ -39,9 +39,9 @@ next-env.d.ts
 .idea
 .vscode
 
-/Helm
+#/Helm
 docker-compose.yml
-.gitlab-ci.yml
+#.gitlab-ci.yml
 
 
 package-lock.json

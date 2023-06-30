@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "portal.fullname" . }}
+  labels:
+    app: {{ template "portal.fullname" . }}
+    chart: {{ template "portal.chart" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "portal.fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "portal.fullname" . }}
+    spec:
+      containers:
+      - name: portal
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+        env:
+        - name: MOTD_URL
+          value: {{ .Values.motd_url }}
+      {{- if .Values.pull_secret }}
+      imagePullSecrets:
+      - name: {{ .Values.pull_secret }}
+      {{- end }}
