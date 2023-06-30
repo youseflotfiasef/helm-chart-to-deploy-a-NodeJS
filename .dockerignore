@@ -1,0 +1,9 @@
+.git/
+.gitignore
+.next/
+.dockerignore
+Dockerfile
+docker-compose.yml
+.gitlab-ci.yml
+node_modules/
+Helm/
