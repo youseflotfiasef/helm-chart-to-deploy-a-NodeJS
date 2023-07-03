@@ -1,13 +1,13 @@
 # Install dependencies only when needed
-FROM registry.devbourse.com/mirror/node:16-alpine AS builder
+FROM registry.compony.com/mirror/node:16-alpine AS builder
 WORKDIR /app
 COPY . .
 ARG BUILD_ENV
 RUN npm install
 RUN npm run build:$BUILD_ENV
 
-FROM registry.devbourse.com/mirror/node:16-alpine AS runner
-LABEL maintainer="Farabi Team <p.farajnezhad@soshyant.co>"
+FROM registry.compony.com/mirror/node:16-alpine AS runner
+LABEL maintainer=" Team "
 
 ARG BUILD_ENV
 ENV RUN_ENV=$BUILD_ENV
